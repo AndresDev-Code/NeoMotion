@@ -2,7 +2,7 @@
 
 
 
-NeoMotion es un proyecto personal que estoy desarrollando con la idea de crear un canal de televisión de anime que funcione las 24 horas.
+NeoMotion es un proyecto personal que desarrollé con la idea de crear un canal de televisión de anime que funcione las 24 horas.
 
 
 
@@ -135,8 +135,6 @@ Entre las funciones que he ido desarrollando están:
 \- IntelliJ IDEA
 
 \- Postman
-
-
 
 ## Arquitectura
 
