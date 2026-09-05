@@ -134,8 +134,6 @@ Entre las funciones que he ido desarrollando están:
 
 \- IntelliJ IDEA
 
-\- Visual Studio Code
-
 \- Postman
 
 
@@ -144,7 +142,7 @@ Entre las funciones que he ido desarrollando están:
 
 
 
-```text
+text
 
 NeoMotion/
 
