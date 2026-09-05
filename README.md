@@ -138,29 +138,64 @@ Entre las funciones que he ido desarrollando están:
 
 
 
-\## Estructura
+## Arquitectura
 
+NeoMotion está separado en dos partes: un frontend desarrollado con React y un backend desarrollado con Spring Boot. Ambos se comunican mediante una API REST.
 
+En el backend intenté mantener cada parte del sistema separada según la responsabilidad que tiene. Los controllers reciben las peticiones, los services manejan la lógica del sistema y los repositories se encargan de trabajar con PostgreSQL.
 
-text
+En general, el flujo es:
 
-NeoMotion/
+Frontend → API REST → Controllers → Services → Repositories → PostgreSQL
 
-│
+Para las imágenes y vídeos también existe un `StorageService`, que se encarga de guardar y eliminar los archivos en el sistema de archivos.
 
-├── backend/
+### Contenido
 
-│   └── Aplicación Spring Boot
+La información de anime está organizada de una forma bastante sencilla:
 
-│
+Series → Seasons → Episodes
 
-├── frontend/
+Además de los episodios, NeoMotion tiene `MediaContent` para manejar otros elementos que forman parte del canal, como promos, comerciales y bumpers.
 
-│   └── Aplicación React
+Los tipos de `MediaContent` que existen actualmente son:
 
-│
+- PROMO
+- COMMERCIAL
+- BUMPER
+- OTHER
 
-├── .gitignore
+### Programación
 
-└── README.md
+Una de las partes principales del proyecto es la programación del canal.
+
+Un `ProgrammingBlock` permite organizar varios contenidos en un orden determinado. Cada elemento del bloque puede ser un episodio o un contenido multimedia.
+
+Después, esos elementos se utilizan para generar la programación real del canal mediante `Schedule`, que es donde se define cuándo se emite cada contenido.
+
+En pocas palabras:
+
+ProgrammingBlock → ProgrammingBlockItem → Episode / MediaContent → Schedule
+
+Esto permite separar un bloque de contenido de la programación que finalmente ocupa un horario.
+
+### Seguridad
+
+NeoMotion utiliza Spring Security y JWT para controlar el acceso a la API.
+
+Hay operaciones que pueden consultarse públicamente, mientras que otras, como administrar contenido o modificar la programación, requieren permisos de administrador.
+
+Los usuarios también tienen un rol dentro del sistema y las contraseñas se almacenan utilizando un `PasswordEncoder`.
+
+### Archivos multimedia
+
+Los vídeos y las imágenes no se almacenan directamente en PostgreSQL. NeoMotion guarda los archivos en el sistema de archivos y mantiene sus rutas dentro de los registros correspondientes.
+
+Esto permite que los episodios y contenidos multimedia tengan asociadas sus miniaturas y vídeos sin mezclar el almacenamiento de archivos con la información de la base de datos.
+
+## Estado del proyecto
+
+NeoMotion es un proyecto terminado y funcional.
+
+La idea es seguir mejorándolo con el tiempo, por lo que en el futuro podrían añadirse nuevas funciones, cambios o mejoras.
 
