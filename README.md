@@ -136,6 +136,24 @@ Entre las funciones que he ido desarrollando están:
 
 \- Postman
 
+## Capturas
+
+### Página principal
+
+![Página principal de NeoMotion](screenshots/pagina-principal.png)
+
+### Programación
+
+![Programación de NeoMotion](screenshots/programacion.png)
+
+### En vivo
+
+![Señal en vivo de NeoMotion](screenshots/en-vivo.png)
+
+### Panel de administración
+
+![Panel de administración de NeoMotion](screenshots/panel-administracion.png)
+
 ## Arquitectura
 
 NeoMotion está separado en dos partes: un frontend desarrollado con React y un backend desarrollado con Spring Boot. Ambos se comunican mediante una API REST.
