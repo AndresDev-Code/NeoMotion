@@ -12,6 +12,9 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import com.neomotion.dto.ScheduleResponseDTO;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -172,6 +175,10 @@ public class ProgrammingBlockServiceImpl
                         );
 
 
+        // =============================================
+        // ACTUALIZAR DATOS DEL BLOQUE
+        // =============================================
+
         block.setName(
                 request.getName()
         );
@@ -182,12 +189,20 @@ public class ProgrammingBlockServiceImpl
         );
 
 
+        // =============================================
+        // OBTENER ITEMS ACTUALES
+        // =============================================
+
         List<ProgrammingBlockItem> existingItems =
                 programmingBlockItemRepository
                         .findByProgrammingBlockIdOrderByPositionAsc(
                                 id
                         );
 
+
+        // =============================================
+        // REEMPLAZAR ITEMS DEL BLOQUE
+        // =============================================
 
         programmingBlockItemRepository.deleteAll(
                 existingItems
@@ -209,10 +224,676 @@ public class ProgrammingBlockServiceImpl
                 );
 
 
+        // =============================================
+        // SINCRONIZAR EMISIONES FUTURAS
+        // =============================================
+
+        sincronizarEmisionesFuturas(
+                updatedBlock
+        );
+
+
         return toResponseDTO(
                 updatedBlock
         );
     }
+    // =================================================
+// SINCRONIZAR EMISIONES FUTURAS
+// =================================================
+
+    private void sincronizarEmisionesFuturas(
+            ProgrammingBlock block) {
+
+        LocalDate currentDate =
+                LocalDate.now();
+
+        LocalTime currentTime =
+                LocalTime.now();
+
+
+        // =============================================
+        // BUSCAR SOLAMENTE EMISIONES FUTURAS
+        // =============================================
+
+        List<Schedule> futureSchedules =
+                scheduleRepository
+                        .findFutureSchedulesByProgrammingBlockId(
+                                block.getId(),
+                                currentDate,
+                                currentTime
+                        );
+
+
+        if (
+                futureSchedules.isEmpty()
+        ) {
+
+            return;
+        }
+
+
+        // =============================================
+        // OBTENER LOS ITEMS ACTUALIZADOS
+        // =============================================
+
+        List<ProgrammingBlockItem> blockItems =
+                programmingBlockItemRepository
+                        .findByProgrammingBlockIdOrderByPositionAsc(
+                                block.getId()
+                        );
+
+
+        if (
+                blockItems.isEmpty()
+        ) {
+
+            return;
+        }
+
+
+        // =============================================
+        // AGRUPAR EMISIONES POR OCURRENCIA
+        // =============================================
+
+        List<List<Schedule>> occurrences =
+                agruparEmisionesPorOcurrencia(
+                        futureSchedules
+                );
+
+
+        // =============================================
+        // SINCRONIZAR CADA OCURRENCIA
+        // =============================================
+
+        for (
+                List<Schedule> occurrence :
+                occurrences
+        ) {
+
+            sincronizarOcurrencia(
+                    occurrence,
+                    blockItems,
+                    block
+            );
+        }
+    }
+    // =================================================
+// AGRUPAR EMISIONES POR OCURRENCIA
+// =================================================
+
+    private List<List<Schedule>> agruparEmisionesPorOcurrencia(
+            List<Schedule> schedules) {
+
+        List<List<Schedule>> occurrences =
+                new ArrayList<>();
+
+
+        if (
+                schedules.isEmpty()
+        ) {
+
+            return occurrences;
+        }
+
+
+        List<Schedule> currentOccurrence =
+                new ArrayList<>();
+
+
+        Schedule previous =
+                null;
+
+
+        for (
+                Schedule schedule :
+                schedules
+        ) {
+
+            boolean sameOccurrence =
+                    previous != null
+                            &&
+                            previous.getAirDate()
+                                    .equals(
+                                            schedule.getAirDate()
+                                    )
+                            &&
+                            previous.getEndTime()
+                                    .equals(
+                                            schedule.getStartTime()
+                                    );
+
+
+            if (
+                    !sameOccurrence
+            ) {
+
+                if (
+                        !currentOccurrence.isEmpty()
+                ) {
+
+                    occurrences.add(
+                            currentOccurrence
+                    );
+                }
+
+
+                currentOccurrence =
+                        new ArrayList<>();
+            }
+
+
+            currentOccurrence.add(
+                    schedule
+            );
+
+
+            previous =
+                    schedule;
+        }
+
+
+        if (
+                !currentOccurrence.isEmpty()
+        ) {
+
+            occurrences.add(
+                    currentOccurrence
+            );
+        }
+
+
+        return occurrences;
+    }
+    // =================================================
+// SINCRONIZAR UNA OCURRENCIA
+// =================================================
+
+    private void sincronizarOcurrencia(
+            List<Schedule> existingSchedules,
+            List<ProgrammingBlockItem> blockItems,
+            ProgrammingBlock block) {
+
+        Schedule firstSchedule =
+                existingSchedules.get(0);
+
+
+        LocalDate airDate =
+                firstSchedule.getAirDate();
+
+
+        LocalTime currentStartTime =
+                firstSchedule.getStartTime();
+
+        validarConflictosDeOcurrencia(
+                existingSchedules,
+                blockItems,
+                airDate,
+                currentStartTime
+        );
+
+        int schedulesToReuse =
+                Math.min(
+                        existingSchedules.size(),
+                        blockItems.size()
+                );
+
+
+        // =============================================
+        // ACTUALIZAR Y REUTILIZAR SCHEDULES EXISTENTES
+        // =============================================
+
+        for (
+                int i = 0;
+                i < schedulesToReuse;
+                i++
+        ) {
+
+            Schedule schedule =
+                    existingSchedules.get(i);
+
+
+            ProgrammingBlockItem item =
+                    blockItems.get(i);
+
+
+            int duration =
+                    calcularDuracionItem(
+                            item
+                    );
+
+
+            LocalTime endTime =
+                    currentStartTime.plusSeconds(
+                            duration
+                    );
+
+
+            actualizarScheduleDesdeItem(
+                    schedule,
+                    item,
+                    block,
+                    airDate,
+                    currentStartTime,
+                    endTime
+            );
+
+
+            currentStartTime =
+                    endTime;
+        }
+
+
+        // =============================================
+        // CREAR NUEVOS SCHEDULES
+        // =============================================
+
+        for (
+                int i = schedulesToReuse;
+                i < blockItems.size();
+                i++
+        ) {
+
+            ProgrammingBlockItem item =
+                    blockItems.get(i);
+
+
+            int duration =
+                    calcularDuracionItem(
+                            item
+                    );
+
+
+            LocalTime endTime =
+                    currentStartTime.plusSeconds(
+                            duration
+                    );
+
+
+            Schedule schedule =
+                    crearScheduleDesdeItem(
+                            item,
+                            block,
+                            airDate,
+                            currentStartTime,
+                            endTime
+                    );
+
+
+            scheduleRepository.save(
+                    schedule
+            );
+
+
+            currentStartTime =
+                    endTime;
+        }
+
+
+        // =============================================
+        // DESACTIVAR SCHEDULES SOBRANTES
+        // =============================================
+
+        for (
+                int i = blockItems.size();
+                i < existingSchedules.size();
+                i++
+        ) {
+
+            Schedule schedule =
+                    existingSchedules.get(i);
+
+
+            schedule.setActive(
+                    false
+            );
+
+
+            scheduleRepository.save(
+                    schedule
+            );
+        }
+    }
+
+    // =================================================
+    // VALIDAR CONFLICTOS DE UNA OCURRENCIA
+    // =================================================
+
+    private void validarConflictosDeOcurrencia(
+            List<Schedule> existingSchedules,
+            List<ProgrammingBlockItem> blockItems,
+            LocalDate airDate,
+            LocalTime startTime) {
+
+        LocalTime currentStartTime =
+                startTime;
+
+
+        Set<Long> scheduleIds =
+                new HashSet<>();
+
+
+        for (
+                Schedule schedule :
+                existingSchedules
+        ) {
+
+            if (
+                    schedule.getId() != null
+            ) {
+
+                scheduleIds.add(
+                        schedule.getId()
+                );
+            }
+        }
+
+
+        for (
+                ProgrammingBlockItem item :
+                blockItems
+        ) {
+
+            int duration =
+                    calcularDuracionItem(
+                            item
+                    );
+
+
+            LocalTime endTime =
+                    currentStartTime.plusSeconds(
+                            duration
+                    );
+
+
+            List<Schedule> conflicts =
+                    scheduleRepository
+                            .findConflictingSchedules(
+                                    airDate,
+                                    currentStartTime,
+                                    endTime
+                            );
+
+
+            for (
+                    Schedule conflict :
+                    conflicts
+            ) {
+
+                // =========================================
+                // IGNORAR LOS SCHEDULES QUE VAMOS A REUTILIZAR
+                // =========================================
+
+                if (
+                        conflict.getId() != null &&
+                                scheduleIds.contains(
+                                        conflict.getId()
+                                )
+                ) {
+
+                    continue;
+                }
+
+
+                throw new ResourceConflictException(
+                        "La actualización del bloque genera " +
+                                "un conflicto de horario entre " +
+                                currentStartTime +
+                                " y " +
+                                endTime +
+                                "."
+                );
+            }
+
+
+            currentStartTime =
+                    endTime;
+        }
+    }
+
+    // =================================================
+   // CALCULAR DURACIÓN DEL ITEM
+   // =================================================
+
+    private int calcularDuracionItem(
+            ProgrammingBlockItem item) {
+
+        int startOffset =
+                item.getContentStartOffset();
+
+
+        int endOffset;
+
+
+        if (
+                item.getContentEndOffset() != null
+        ) {
+
+            endOffset =
+                    item.getContentEndOffset();
+
+        } else if (
+                item.getEpisode() != null
+        ) {
+
+            endOffset =
+                    item.getEpisode()
+                            .getDurationMinutes() * 60;
+
+        } else {
+
+            endOffset =
+                    item.getMediaContent()
+                            .getDurationSeconds();
+        }
+
+
+        return endOffset - startOffset;
+    }
+// =================================================
+// ACTUALIZAR SCHEDULE EXISTENTE
+// =================================================
+
+    private void actualizarScheduleDesdeItem(
+            Schedule schedule,
+            ProgrammingBlockItem item,
+            ProgrammingBlock block,
+            LocalDate airDate,
+            LocalTime startTime,
+            LocalTime endTime) {
+
+        schedule.setProgrammingBlock(
+                block
+        );
+
+
+        schedule.setAirDate(
+                airDate
+        );
+
+
+        schedule.setStartTime(
+                startTime
+        );
+
+
+        schedule.setEndTime(
+                endTime
+        );
+
+
+        int startOffset =
+                item.getContentStartOffset();
+
+
+        int duration =
+                calcularDuracionItem(
+                        item
+                );
+
+
+        int endOffset =
+                startOffset +
+                        duration;
+
+
+        schedule.setContentStartOffset(
+                startOffset
+        );
+
+
+        schedule.setContentEndOffset(
+                endOffset
+        );
+
+        schedule.setActive(
+                true
+        );
+
+
+        // =============================================
+        // EPISODIO
+        // =============================================
+
+        if (
+                item.getEpisode() != null
+        ) {
+
+            schedule.setEpisode(
+                    item.getEpisode()
+            );
+
+
+            schedule.setMediaContent(
+                    null
+            );
+
+        } else {
+
+            // =========================================
+            // MEDIA CONTENT
+            // =========================================
+
+            schedule.setMediaContent(
+                    item.getMediaContent()
+            );
+
+
+            schedule.setEpisode(
+                    null
+            );
+        }
+
+
+        scheduleRepository.save(
+                schedule
+        );
+    }
+
+    // =================================================
+   // CREAR NUEVO SCHEDULE
+   // =================================================
+
+    private Schedule crearScheduleDesdeItem(
+            ProgrammingBlockItem item,
+            ProgrammingBlock block,
+            LocalDate airDate,
+            LocalTime startTime,
+            LocalTime endTime) {
+
+        Schedule schedule =
+                new Schedule();
+
+
+        schedule.setAirDate(
+                airDate
+        );
+
+
+        schedule.setStartTime(
+                startTime
+        );
+
+
+        schedule.setEndTime(
+                endTime
+        );
+
+
+        schedule.setActive(
+                true
+        );
+
+
+        schedule.setProgrammingBlock(
+                block
+        );
+
+
+        int startOffset =
+                item.getContentStartOffset();
+
+
+        int duration =
+                calcularDuracionItem(
+                        item
+                );
+
+
+        int endOffset =
+                startOffset +
+                        duration;
+
+
+        schedule.setContentStartOffset(
+                startOffset
+        );
+
+
+        schedule.setContentEndOffset(
+                endOffset
+        );
+
+
+        // =============================================
+        // EPISODIO
+        // =============================================
+
+        if (
+                item.getEpisode() != null
+        ) {
+
+            schedule.setEpisode(
+                    item.getEpisode()
+            );
+
+
+            schedule.setMediaContent(
+                    null
+            );
+
+
+            return schedule;
+        }
+
+
+        // =============================================
+        // MEDIA CONTENT
+        // =============================================
+
+        schedule.setMediaContent(
+                item.getMediaContent()
+        );
+
+
+        schedule.setEpisode(
+                null
+        );
+
+
+        return schedule;
+    }
+
+
 
 
     // =================================================

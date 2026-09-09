@@ -63,6 +63,25 @@ public interface ScheduleRepository
             Long programmingBlockId
     );
 
+    @Query("""
+    SELECT s
+    FROM Schedule s
+    WHERE s.programmingBlock.id = :programmingBlockId
+      AND (
+          s.airDate > :currentDate
+          OR (
+              s.airDate = :currentDate
+              AND s.startTime > :currentTime
+          )
+      )
+    ORDER BY s.airDate ASC, s.startTime ASC
+    """)
+    List<Schedule> findFutureSchedulesByProgrammingBlockId(
+            @Param("programmingBlockId") Long programmingBlockId,
+            @Param("currentDate") LocalDate currentDate,
+            @Param("currentTime") LocalTime currentTime
+    );
+
 
     // =================================================
     // PROGRAMACIÓN ACTUAL
