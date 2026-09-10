@@ -1,5 +1,7 @@
 # NeoMotion
 
+[![NeoMotion CI](https://github.com/AndresDev-Code/NeoMotion/actions/workflows/main.yml/badge.svg)](https://github.com/AndresDev-Code/NeoMotion/actions/workflows/main.yml)
+
 NeoMotion es un proyecto personal que desarrollé con la idea de crear un canal de televisión de anime que funcione las 24 horas.
 
 La idea nace de mi gusto por los antiguos canales de anime, especialmente de aquellos que tenían una programación continua, bloques de programación y una identidad propia.
