@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -22,13 +23,11 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public String saveImage(MultipartFile file) {
-
         return save(file, imageFolder);
     }
 
     @Override
     public String saveVideo(MultipartFile file) {
-
         return save(file, videoFolder);
     }
 
@@ -46,34 +45,95 @@ public class StorageServiceImpl implements StorageService {
 
         try {
 
-            Path file = Paths.get(folder).resolve(filename);
+            Path baseDirectory =
+                    Paths.get(folder)
+                            .toAbsolutePath()
+                            .normalize();
+
+            Path file =
+                    baseDirectory
+                            .resolve(filename)
+                            .normalize();
+
+            if (!file.startsWith(baseDirectory)) {
+                throw new SecurityException(
+                        "Ruta de archivo no permitida."
+                );
+            }
 
             Files.deleteIfExists(file);
 
         } catch (IOException e) {
 
-            throw new RuntimeException("No fue posible eliminar el archivo.");
+            throw new RuntimeException(
+                    "No fue posible eliminar el archivo."
+            );
         }
     }
 
-    private String save(MultipartFile file, String folder) {
+    private String save(
+            MultipartFile file,
+            String folder) {
 
         try {
 
-            Files.createDirectories(Paths.get(folder));
+            Path baseDirectory =
+                    Paths.get(folder)
+                            .toAbsolutePath()
+                            .normalize();
 
-            String originalName = file.getOriginalFilename();
+            Files.createDirectories(baseDirectory);
+
+            String originalName =
+                    file.getOriginalFilename();
 
             String extension = "";
 
-            if (originalName != null && originalName.contains(".")) {
+            if (originalName != null) {
 
-                extension = originalName.substring(originalName.lastIndexOf("."));
+                String cleanName =
+                        Paths.get(originalName)
+                                .getFileName()
+                                .toString();
+
+                int lastDot =
+                        cleanName.lastIndexOf('.');
+
+                if (
+                        lastDot > 0 &&
+                                lastDot < cleanName.length() - 1
+                ) {
+
+                    String candidate =
+                            cleanName
+                                    .substring(lastDot)
+                                    .toLowerCase(
+                                            Locale.ROOT
+                                    );
+
+                    if (
+                            candidate.matches(
+                                    "\\.[a-z0-9]{1,10}"
+                            )
+                    ) {
+                        extension = candidate;
+                    }
+                }
             }
 
-            String filename = UUID.randomUUID() + extension;
+            String filename =
+                    UUID.randomUUID() + extension;
 
-            Path destination = Paths.get(folder).resolve(filename);
+            Path destination =
+                    baseDirectory
+                            .resolve(filename)
+                            .normalize();
+
+            if (!destination.startsWith(baseDirectory)) {
+                throw new SecurityException(
+                        "Ruta de archivo no permitida."
+                );
+            }
 
             Files.copy(
                     file.getInputStream(),
@@ -85,9 +145,9 @@ public class StorageServiceImpl implements StorageService {
 
         } catch (IOException e) {
 
-            throw new RuntimeException("Error guardando el archivo.");
+            throw new RuntimeException(
+                    "Error guardando el archivo."
+            );
         }
-
     }
-
 }
