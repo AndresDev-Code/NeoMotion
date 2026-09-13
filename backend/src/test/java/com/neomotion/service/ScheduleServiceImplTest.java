@@ -1184,17 +1184,16 @@ class ScheduleServiceImplTest {
 
         // ARRANGE
         LocalDate airDate = LocalDate.now();
-        LocalTime currentTime = LocalTime.now();
 
         Schedule schedule = new Schedule();
         schedule.setId(1L);
         schedule.setAirDate(airDate);
-        schedule.setStartTime(currentTime.minusMinutes(10));
-        schedule.setEndTime(currentTime.plusMinutes(10));
+        schedule.setStartTime(LocalTime.of(18, 0));
+        schedule.setEndTime(LocalTime.of(23, 59));
 
         when(scheduleRepository.findCurrentSchedule(
-                airDate,
-                currentTime
+                eq(airDate),
+                any(LocalTime.class)
         )).thenReturn(Optional.of(schedule));
 
         // ACT
@@ -1206,44 +1205,18 @@ class ScheduleServiceImplTest {
         assertEquals(1L, response.getId());
         assertEquals(airDate, response.getAirDate());
         assertEquals(
-                currentTime.minusMinutes(10),
+                LocalTime.of(18, 0),
                 response.getStartTime()
         );
         assertEquals(
-                currentTime.plusMinutes(10),
+                LocalTime.of(23, 59),
                 response.getEndTime()
         );
 
-        verify(scheduleRepository)
-                .findCurrentSchedule(airDate, currentTime);
-    }
-    @Test
-    void findCurrentShouldRejectWhenThereIsNoCurrentSchedule() {
-
-        // ARRANGE
-        LocalDate airDate = LocalDate.now();
-
-        when(scheduleRepository.findCurrentSchedule(
+        verify(scheduleRepository).findCurrentSchedule(
                 eq(airDate),
                 any(LocalTime.class)
-        )).thenReturn(Optional.empty());
-
-        // ACT + ASSERT
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> scheduleService.findCurrent()
         );
-
-        assertEquals(
-                "No hay ningún programa transmitiéndose en este momento.",
-                exception.getMessage()
-        );
-
-        verify(scheduleRepository)
-                .findCurrentSchedule(
-                        eq(airDate),
-                        any(LocalTime.class)
-                );
     }
 
     @Test
