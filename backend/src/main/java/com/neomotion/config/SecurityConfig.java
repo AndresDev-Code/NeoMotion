@@ -62,6 +62,16 @@ public class SecurityConfig {
                                 "/api/users"
                         ).permitAll()
 
+                         // =================================
+                        // SWAGGER / OPENAPI
+                        // =================================
+
+                                .requestMatchers(
+                                        "/swagger-ui.html",
+                                        "/swagger-ui/**",
+                                        "/v3/api-docs/**"
+                                ).permitAll()
+
 
                         // =================================
                         // CATÁLOGO PÚBLICO
