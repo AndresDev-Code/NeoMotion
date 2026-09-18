@@ -52,7 +52,7 @@ public class FileController {
     }
 
     @DeleteMapping("/image")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteImage(
             @RequestParam String filename) {
 
@@ -60,7 +60,7 @@ public class FileController {
     }
 
     @DeleteMapping("/video")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteVideo(
             @RequestParam String filename) {
 
