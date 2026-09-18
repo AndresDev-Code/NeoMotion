@@ -23,7 +23,6 @@ public class JwtAuthenticationFilter
 
     private final CustomUserDetailsService userDetailsService;
 
-
     public JwtAuthenticationFilter(
             JwtService jwtService,
             CustomUserDetailsService userDetailsService) {
@@ -34,7 +33,6 @@ public class JwtAuthenticationFilter
         this.userDetailsService =
                 userDetailsService;
     }
-
 
     @Override
     protected void doFilterInternal(
@@ -47,13 +45,6 @@ public class JwtAuthenticationFilter
                 request.getHeader(
                         "Authorization"
                 );
-
-
-        System.out.println(
-                "Authorization Header = " +
-                        authHeader
-        );
-
 
         // =================================================
         // NO HAY TOKEN
@@ -72,7 +63,6 @@ public class JwtAuthenticationFilter
             return;
         }
 
-
         // =================================================
         // EXTRAER TOKEN
         // =================================================
@@ -80,23 +70,11 @@ public class JwtAuthenticationFilter
         String jwt =
                 authHeader.substring(7).trim();
 
-
-        System.out.println(
-                "JWT = " +
-                        jwt
-        );
-
-
         // =================================================
         // TOKEN VACÍO
         // =================================================
 
         if (jwt.isEmpty()) {
-
-            System.out.println(
-                    "JWT vacío. Se continúa sin autenticación."
-            );
-
 
             filterChain.doFilter(
                     request,
@@ -105,7 +83,6 @@ public class JwtAuthenticationFilter
 
             return;
         }
-
 
         try {
 
@@ -118,18 +95,6 @@ public class JwtAuthenticationFilter
                             jwt
                     );
 
-
-            System.out.println(
-                    "========== JWT =========="
-            );
-
-
-            System.out.println(
-                    "Username: " +
-                            username
-            );
-
-
             // =================================================
             // VALIDAR USUARIO
             // =================================================
@@ -139,11 +104,6 @@ public class JwtAuthenticationFilter
                             username.isBlank()
             ) {
 
-                System.out.println(
-                        "JWT sin username válido."
-                );
-
-
                 filterChain.doFilter(
                         request,
                         response
@@ -151,7 +111,6 @@ public class JwtAuthenticationFilter
 
                 return;
             }
-
 
             // =================================================
             // EVITAR REAUTENTICACIÓN
@@ -169,14 +128,6 @@ public class JwtAuthenticationFilter
                                 .loadUserByUsername(
                                         username
                                 );
-
-
-                System.out.println(
-                        "Authorities: " +
-                                userDetails
-                                        .getAuthorities()
-                );
-
 
                 // =================================================
                 // VALIDAR TOKEN
@@ -197,7 +148,6 @@ public class JwtAuthenticationFilter
                                             .getAuthorities()
                             );
 
-
                     authToken.setDetails(
                             new WebAuthenticationDetailsSource()
                                     .buildDetails(
@@ -205,31 +155,13 @@ public class JwtAuthenticationFilter
                                     )
                     );
 
-
                     SecurityContextHolder
                             .getContext()
                             .setAuthentication(
                                     authToken
                             );
-
-
-                    System.out.println(
-                            "TOKEN VÁLIDO"
-                    );
-
-
-                    System.out.println(
-                            "AUTENTICACIÓN GUARDADA"
-                    );
-
-                } else {
-
-                    System.out.println(
-                            "TOKEN INVÁLIDO O EXPIRADO"
-                    );
                 }
             }
-
 
         } catch (Exception exception) {
 
@@ -242,12 +174,7 @@ public class JwtAuthenticationFilter
              * para endpoints públicos de NeoMotion.
              */
 
-            System.out.println(
-                    "JWT inválido: " +
-                            exception.getMessage()
-            );
         }
-
 
         // =================================================
         // CONTINUAR CADENA
