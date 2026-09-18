@@ -13,7 +13,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @TestPropertySource(properties = {
         "jwt.secret=test-secret-for-security-tests",
-        "jwt.expiration=86400000"
+        "jwt.expiration=86400000",
+        "storage.images=uploads/images",
+        "storage.videos=uploads/videos"
 })
 @SpringBootTest
 @AutoConfigureMockMvc
