@@ -23,7 +23,7 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public List<UserResponseDTO> findAll() {
         return userService.findAll();
     }
@@ -36,7 +36,10 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
+    @PreAuthorize(
+            "hasRole('ADMIN') or " +
+                    "@userServiceImpl.isOwner(#id, authentication.name)"
+    )
     public UserResponseDTO findById(@PathVariable Long id) {
 
         return userService.findById(id)
@@ -66,7 +69,10 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(
+            "hasRole('ADMIN') or " +
+                    "@userServiceImpl.isOwner(#id, authentication.name)"
+    )
     public UserResponseDTO update(
             @PathVariable Long id,
             @Valid @RequestBody UserRequestDTO request) {
@@ -75,13 +81,13 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteById(@PathVariable Long id) {
         userService.deleteById(id);
     }
 
     @GetMapping("/username/{username}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponseDTO getUserByUsername(
             @PathVariable String username) {
 
@@ -93,7 +99,7 @@ public class UserController {
     }
 
     @GetMapping("/email/{email}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponseDTO getUserByEmail(
             @PathVariable String email) {
 

@@ -24,4 +24,9 @@ public interface UserService {
     UserResponseDTO update(Long id, UserRequestDTO request);
 
     void deleteById(Long id);
+
+    boolean isOwner(
+            Long id,
+            String username
+    );
 }

@@ -140,6 +140,19 @@ public class UserServiceImpl implements UserService {
         userRepository.deleteById(id);
     }
 
+    @Override
+    public boolean isOwner(
+            Long id,
+            String username) {
+
+        return userRepository.findById(id)
+                .map(user ->
+                        user.getUsername()
+                                .equals(username)
+                )
+                .orElse(false);
+    }
+
     private final PasswordEncoder passwordEncoder;
 
     private UserResponseDTO toResponseDTO(User user) {
