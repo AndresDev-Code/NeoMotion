@@ -11,7 +11,10 @@ import org.springframework.test.context.TestPropertySource;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@TestPropertySource(properties = "jwt.secret=test-secret-for-security-tests")
+@TestPropertySource(properties = {
+        "jwt.secret=test-secret-for-security-tests",
+        "jwt.expiration=86400000"
+})
 @SpringBootTest
 @AutoConfigureMockMvc
 class SecurityAuthorizationTest {
