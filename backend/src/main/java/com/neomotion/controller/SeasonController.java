@@ -21,7 +21,7 @@ public class SeasonController {
     }
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public SeasonResponseDTO save(
             @Valid @RequestBody SeasonRequestDTO request) {
 
@@ -53,7 +53,7 @@ public class SeasonController {
 
 
     @PutMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public SeasonResponseDTO update(
             @PathVariable Long id,
             @Valid @RequestBody SeasonRequestDTO request) {
@@ -63,7 +63,7 @@ public class SeasonController {
 
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteById(
             @PathVariable Long id) {
 
